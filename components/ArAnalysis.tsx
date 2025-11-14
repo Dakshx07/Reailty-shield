@@ -15,7 +15,7 @@ const ArAnalysis: React.FC = () => {
     const enableCamera = async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (videoRef.current) {
+Remove the 'useContext' import: 'import React, { useState, useEffect, useRef } from 'react';
           videoRef.current.srcObject = stream;
         }
         setIsCameraActive(true);
