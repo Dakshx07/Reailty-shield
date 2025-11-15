@@ -23,7 +23,7 @@ function App() {
   const showSplash = () => setView('splash');
   const showLogin = () => setView('login');
   const showSignUp = () => setView('signup');
-  const showDashboard = () => setView('dashboard');
+Remove the 'setView' state setter as it is not used in the current implementation.
 
   const renderView = () => {
     switch (view) {
