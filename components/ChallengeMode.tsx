@@ -1,8 +1,9 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ChallengeItem } from '../types';
 import Confetti from './ui/Confetti';
 import { AcademicCapIcon, CheckCircleIcon, ShieldExclamationIcon } from './Icons';
 
+// Consider fetching challenges from an API in a real application.
 const mockChallenges: ChallengeItem[] = [
   { id: 1, claim: "Eating oranges prevents COVID-19 because of Vitamin C.", isMisinfo: true, tip: "While Vitamin C is good for immunity, it's not a proven cure or prevention for COVID-19. Always check with health authorities like the WHO." },
   { id: 2, claim: "A study found that regular exercise can improve cardiovascular health.", isMisinfo: false, tip: "This claim is well-supported by scientific evidence. Reputable health organizations consistently recommend exercise." },
@@ -11,60 +12,91 @@ const mockChallenges: ChallengeItem[] = [
   { id: 5, claim: "A picture shows a shark swimming on a flooded highway in Houston.", mediaUrl: "https://images.unsplash.com/photo-1574042353323-24143a443715?q=80&w=2070&auto=format&fit=crop", isMisinfo: true, tip: "This is a classic example of a photoshopped image that goes viral after natural disasters. Use reverse image search to find the original photo." }
 ];
 
+// Memoize components to prevent unnecessary re-renders
+const MemoizedConfetti = React.memo(Confetti);
+
 const ChallengeMode: React.FC = () => {
     const [score, setScore] = useState(0);
     const [streak, setStreak] = useState(0);
     const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
-    const [answerState, setAnswerState] = useState<'correct' | 'incorrect' | 'unanswered'>('unanswered');
+    // Use a more descriptive type for answer state
+    const [answerStatus, setAnswerStatus] = useState<'correct' | 'incorrect' | 'idle'>('idle');
     const [showConfetti, setShowConfetti] = useState(false);
-    
-    const currentChallenge = mockChallenges[currentChallengeIndex];
+
+    // Ensure challenge data is stable
+    const challenges = React.useMemo(() => mockChallenges, []);
+    const currentChallenge = challenges[currentChallengeIndex];
+
+    // Use useEffect for side effects like confetti timeout
+    useEffect(() => {
+        if (showConfetti) {
+            const timer = setTimeout(() => setShowConfetti(false), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [showConfetti]);
 
     const handleAnswer = (isMisinfoGuess: boolean) => {
-        if (answerState !== 'unanswered') return;
+        if (answerStatus !== 'idle') return;
 
-        if (isMisinfoGuess === currentChallenge.isMisinfo) {
-            setAnswerState('correct');
+        const isCorrect = isMisinfoGuess === currentChallenge.isMisinfo;
+
+        if (isCorrect) {
+            setAnswerStatus('correct');
             setScore(prev => prev + 10);
             setStreak(prev => prev + 1);
             setShowConfetti(true);
-            setTimeout(() => setShowConfetti(false), 2000);
         } else {
-            setAnswerState('incorrect');
+            setAnswerStatus('incorrect');
             setStreak(0);
         }
     };
     
     const handleNext = () => {
-        setAnswerState('unanswered');
-        setCurrentChallengeIndex(prev => (prev + 1) % mockChallenges.length);
-    }
+        setAnswerStatus('idle');
+        // Use modulo arithmetic for cycling through challenges safely
+        setCurrentChallengeIndex(prevIndex => (prevIndex + 1) % challenges.length);
+    };
     
-    const GameCard = () => (
-        <div key={currentChallenge.id} className="relative animate-[challenge-card-in_0.5s_ease-out_forwards]">
-            {showConfetti && <Confetti />}
+    // Extracted components for better readability and reusability
+    const GameCard = React.memo(() => (
+        <div className="relative animate-[challenge-card-in_0.5s_ease-out_forwards]">
+            {showConfetti && <MemoizedConfetti />}
             {currentChallenge.mediaUrl && (
-                <img src={currentChallenge.mediaUrl} alt="Challenge media" className="w-full h-64 object-cover rounded-t-2xl border-t border-x border-white/10" />
+                <img 
+                    src={currentChallenge.mediaUrl} 
+                    alt="Challenge media" 
+                    className="w-full h-64 object-cover rounded-t-2xl border-t border-x border-white/10" 
+                    // Added error handling for image loading
+                    onError={(e) => (e.currentTarget.style.display = 'none')} 
+                />
             )}
             <div className="bg-black/20 border border-white/10 p-8 rounded-b-2xl">
                  <p className="text-gray-400 text-sm font-bold tracking-widest">IS THIS MISINFORMATION?</p>
                 <h3 className="text-2xl md:text-3xl font-semibold text-white my-4">{currentChallenge.claim}</h3>
                 
                 <div className="mt-8 grid grid-cols-2 gap-4">
-                    <button onClick={() => handleAnswer(true)} disabled={answerState !== 'unanswered'} className="py-4 text-lg font-bold bg-red-600/80 hover:bg-red-600 disabled:opacity-50 disabled:hover:bg-red-600/80 rounded-lg transition-all transform hover:scale-105 disabled:scale-100">False / Misinfo</button>
-                    <button onClick={() => handleAnswer(false)} disabled={answerState !== 'unanswered'} className="py-4 text-lg font-bold bg-green-600/80 hover:bg-green-600 disabled:opacity-50 disabled:hover:bg-green-600/80 rounded-lg transition-all transform hover:scale-105 disabled:scale-100">True / Authentic</button>
+                    <button 
+                        onClick={() => handleAnswer(true)}
+                        disabled={answerStatus !== 'idle'}
+                        className="py-4 text-lg font-bold bg-red-600/80 hover:bg-red-600 disabled:opacity-50 disabled:hover:bg-red-600/80 rounded-lg transition-all transform hover:scale-105 disabled:scale-100"
+                    >False / Misinfo</button>
+                    <button 
+                        onClick={() => handleAnswer(false)}
+                        disabled={answerStatus !== 'idle'}
+                        className="py-4 text-lg font-bold bg-green-600/80 hover:bg-green-600 disabled:opacity-50 disabled:hover:bg-green-600/80 rounded-lg transition-all transform hover:scale-105 disabled:scale-100"
+                    >True / Authentic</button>
                 </div>
             </div>
         </div>
-    );
+    ));
 
-    const ResultCard = () => (
+    const ResultCard = React.memo(() => (
         <div className="bg-black/20 border border-white/10 rounded-2xl p-8 animate-[challenge-card-in_0.5s_ease-out_forwards]">
             <div className="flex items-center gap-4">
-                 {answerState === 'correct' ? <CheckCircleIcon className="w-12 h-12 text-green-400" /> : <ShieldExclamationIcon className="w-12 h-12 text-red-400" />}
+                 {answerStatus === 'correct' ? <CheckCircleIcon className="w-12 h-12 text-green-400" /> : <ShieldExclamationIcon className="w-12 h-12 text-red-400" />}
                 <div>
-                    <h3 className={`font-clash text-3xl font-semibold ${answerState === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
-                        {answerState === 'correct' ? 'Correct!' : 'Incorrect!'}
+                    <h3 className={`font-clash text-3xl font-semibold ${answerStatus === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
+                        {answerStatus === 'correct' ? 'Correct!' : 'Incorrect!'}
                     </h3>
                     <p className="text-gray-400">The claim was {currentChallenge.isMisinfo ? 'indeed misinformation' : 'authentic'}.</p>
                 </div>
@@ -74,19 +106,19 @@ const ChallengeMode: React.FC = () => {
                 <p className="text-gray-300 mt-2">{currentChallenge.tip}</p>
             </div>
             <button onClick={handleNext} className="mt-8 w-full bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-cyan-500 transition-colors">
-                {currentChallengeIndex === mockChallenges.length - 1 ? 'Play Again' : 'Next Challenge'}
+                {currentChallengeIndex === challenges.length - 1 ? 'Play Again' : 'Next Challenge'}
             </button>
         </div>
-    );
+    ));
 
     return (
-        <div>
-            <h1 className="font-clash text-5xl font-semibold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400">Cognitive Training Simulator</h1>
-            <p className="text-xl text-gray-400 mb-8">Sharpen your skills. Spot the lies.</p>
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="font-clash text-5xl font-semibold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400 text-center">Cognitive Training Simulator</h1>
+            <p className="text-xl text-gray-400 mb-8 text-center">Sharpen your skills. Spot the lies.</p>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    {answerState === 'unanswered' ? <GameCard /> : <ResultCard />}
+                    {answerStatus === 'idle' ? <GameCard /> : <ResultCard />}
                 </div>
                 <div className="space-y-6">
                     <div className="bg-black/20 border border-white/10 rounded-2xl p-6 text-center">
