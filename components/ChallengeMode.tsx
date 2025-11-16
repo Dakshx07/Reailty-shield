@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ChallengeItem } from '../types';
 import Confetti from './ui/Confetti';
 import { AcademicCapIcon, CheckCircleIcon, ShieldExclamationIcon } from './Icons';
@@ -7,7 +7,7 @@ const mockChallenges: ChallengeItem[] = [
   { id: 1, claim: "Eating oranges prevents COVID-19 because of Vitamin C.", isMisinfo: true, tip: "While Vitamin C is good for immunity, it's not a proven cure or prevention for COVID-19. Always check with health authorities like the WHO." },
   { id: 2, claim: "A study found that regular exercise can improve cardiovascular health.", isMisinfo: false, tip: "This claim is well-supported by scientific evidence. Reputable health organizations consistently recommend exercise." },
   { id: 3, claim: "You can charge your phone by microwaving it for 30 seconds.", isMisinfo: true, tip: "This is a dangerous hoax that can destroy your phone and microwave. Be wary of 'secret' tech tricks that defy physics." },
-  { id: 4, claim: "The Eiffel Tower is located in Paris, France.", isMisinfo: false, tip: "This is a widely known and easily verifiable fact. Simple facts are rarely the subject of complex misinformation." },
+  { id: 4, claim: "The Eiffel Tower is located in Paris, France.", isMisinfo: false, tip: "This is a widely known and easily verifiable fact. Simple facts are rarely the subject of the complex misinformation." },
   { id: 5, claim: "A picture shows a shark swimming on a flooded highway in Houston.", mediaUrl: "https://images.unsplash.com/photo-1574042353323-24143a443715?q=80&w=2070&auto=format&fit=crop", isMisinfo: true, tip: "This is a classic example of a photoshopped image that goes viral after natural disasters. Use reverse image search to find the original photo." }
 ];
 
@@ -20,6 +20,11 @@ const ChallengeMode: React.FC = () => {
     
     const currentChallenge = mockChallenges[currentChallengeIndex];
 
+    useEffect(() => {
+        // Reset confetti when challenge changes
+        setShowConfetti(false);
+    }, [currentChallengeIndex]);
+
     const handleAnswer = (isMisinfoGuess: boolean) => {
         if (answerState !== 'unanswered') return;
 
@@ -28,7 +33,6 @@ const ChallengeMode: React.FC = () => {
             setScore(prev => prev + 10);
             setStreak(prev => prev + 1);
             setShowConfetti(true);
-            setTimeout(() => setShowConfetti(false), 2000);
         } else {
             setAnswerState('incorrect');
             setStreak(0);
@@ -38,8 +42,23 @@ const ChallengeMode: React.FC = () => {
     const handleNext = () => {
         setAnswerState('unanswered');
         setCurrentChallengeIndex(prev => (prev + 1) % mockChallenges.length);
-    }
-    
+    };
+
+    const getButtonClasses = (isMisinfoGuess: boolean) => {
+        const baseClasses = "py-4 text-lg font-bold rounded-lg transition-all transform hover:scale-105 disabled:scale-100";
+        if (answerState === 'unanswered') {
+            return `${baseClasses} ${isMisinfoGuess ? 'bg-red-600/80 hover:bg-red-600' : 'bg-green-600/80 hover:bg-green-600'} disabled:opacity-50 disabled:hover:bg-transparent`;
+        } else {
+            const isCorrect = isMisinfoGuess === currentChallenge.isMisinfo;
+            const isGuessedCorrectly = isMisinfoGuess === currentChallenge.isMisinfo;
+            if (isGuessedCorrectly) {
+                return `${baseClasses} ${isMisinfoGuess ? 'bg-green-600' : 'bg-green-600'} opacity-100`;
+            } else {
+                return `${baseClasses} ${isMisinfoGuess ? 'bg-red-600' : 'bg-red-600'} ${isCorrect ? 'opacity-100' : 'opacity-50'}`;
+            }
+        }
+    };
+
     const GameCard = () => (
         <div key={currentChallenge.id} className="relative animate-[challenge-card-in_0.5s_ease-out_forwards]">
             {showConfetti && <Confetti />}
@@ -51,8 +70,8 @@ const ChallengeMode: React.FC = () => {
                 <h3 className="text-2xl md:text-3xl font-semibold text-white my-4">{currentChallenge.claim}</h3>
                 
                 <div className="mt-8 grid grid-cols-2 gap-4">
-                    <button onClick={() => handleAnswer(true)} disabled={answerState !== 'unanswered'} className="py-4 text-lg font-bold bg-red-600/80 hover:bg-red-600 disabled:opacity-50 disabled:hover:bg-red-600/80 rounded-lg transition-all transform hover:scale-105 disabled:scale-100">False / Misinfo</button>
-                    <button onClick={() => handleAnswer(false)} disabled={answerState !== 'unanswered'} className="py-4 text-lg font-bold bg-green-600/80 hover:bg-green-600 disabled:opacity-50 disabled:hover:bg-green-600/80 rounded-lg transition-all transform hover:scale-105 disabled:scale-100">True / Authentic</button>
+                    <button onClick={() => handleAnswer(true)} disabled={answerState !== 'unanswered'} className={getButtonClasses(true)}>False / Misinfo</button>
+                    <button onClick={() => handleAnswer(false)} disabled={answerState !== 'unanswered'} className={getButtonClasses(false)}>True / Authentic</button>
                 </div>
             </div>
         </div>
