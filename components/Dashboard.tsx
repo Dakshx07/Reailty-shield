@@ -26,7 +26,7 @@ const Dashboard: React.FC<DashboardProps> = ({ showSplash }) => {
 
   return (
     <div className="min-h-screen flex w-full relative">
-      <div className="absolute inset-0 bg-neutral-900/50 hud-grid"></div>
+If the components have known props, define an interface for them and use it. For example, if `TextAnalysis` expects `data: string`, you could define `interface TextAnalysisProps { data: string; }` and use `React.FC<TextAnalysisProps>`. If the props are genuinely unknown or varied, consider using `React.FC<{}>` if no props are expected, or a more specific union type if there's a known set of potential props.
       <ModeSelector 
         currentMode={mode} 
         onSelectMode={setMode}
