@@ -27,7 +27,7 @@ const Dashboard: React.FC<DashboardProps> = ({ showSplash }) => {
   return (
     <div className="min-h-screen flex w-full relative">
       <div className="absolute inset-0 bg-neutral-900/50 hud-grid"></div>
-      <ModeSelector 
+Remove the unused import: `import React from 'react';`
         currentMode={mode} 
         onSelectMode={setMode}
         onShowSplash={showSplash}
