@@ -37,7 +37,26 @@ const ChallengeMode: React.FC = () => {
     
     const handleNext = () => {
         setAnswerState('unanswered');
-        setCurrentChallengeIndex(prev => (prev + 1) % mockChallenges.length);
+Add a check to ensure `showConfetti` is false before setting it to true, or clear the timeout if a new answer is given before the previous timeout completes. A simpler approach might be to only allow one confetti animation to be active at a time. 
+```typescript
+const handleAnswer = (isMisinfoGuess: boolean) => {
+    if (answerState !== 'unanswered') return;
+
+    if (isMisinfoGuess === currentChallenge.isMisinfo) {
+        setAnswerState('correct');
+        setScore(prev => prev + 10);
+        setStreak(prev => prev + 1);
+        // Only show confetti if it's not already showing
+        if (!showConfetti) {
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 2000);
+        }
+    } else {
+        setAnswerState('incorrect');
+        setStreak(0);
+    }
+};
+```
     }
     
     const GameCard = () => (
